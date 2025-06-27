@@ -52,5 +52,14 @@
     "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
     "description": "Comfortable cotton blend perfect for daily wear",
     "inStock": false
+  },
+  {
+    "id": 1751041250316,
+    "name": "kameez",
+    "price": 10000,
+    "category": "chiffon",
+    "image": "/products/product-1751041249923-79255327.png",
+    "description": "good product",
+    "inStock": true
   }
 ]
