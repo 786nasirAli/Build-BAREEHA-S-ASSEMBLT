@@ -359,8 +359,8 @@ export default function AdminDashboard() {
                   />
                   In Stock
                 </label>
-                <Button type="submit" className="w-full">
-                  Add Product
+                <Button type="submit" className="w-full" disabled={isUploading}>
+                  {isUploading ? "Uploading..." : "Add Product"}
                 </Button>
               </form>
             </div>
