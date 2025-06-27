@@ -37,6 +37,7 @@
     "dist",
     "client",
     "server",
+    "netlify",
     "vite.config.ts",
     "vite.config.server.ts"
   ]
