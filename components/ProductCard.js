@@ -8,13 +8,21 @@ export default function ProductCard({ product }) {
       <div className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
         {/* Product Image */}
         <div className="aspect-[3/4] overflow-hidden bg-gray-100">
-          <Image
-            src={product.image}
-            alt={product.name}
-            width={400}
-            height={533}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          {product.image.startsWith("/products/") ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <Image
+              src={product.image}
+              alt={product.name}
+              width={400}
+              height={533}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          )}
         </div>
 
         {/* Product Info */}
