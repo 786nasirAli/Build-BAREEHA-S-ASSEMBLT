@@ -374,11 +374,21 @@ export default function AdminDashboard() {
                     key={product.id}
                     className="flex items-center justify-between p-3 border rounded"
                   >
-                    <div className="flex-1">
-                      <h3 className="font-medium">{product.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {formatPrice(product.price)} • {product.category}
-                      </p>
+                    <div className="flex items-center space-x-3 flex-1">
+                      {/* Product Thumbnail */}
+                      <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{product.name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {formatPrice(product.price)} • {product.category}
+                        </p>
+                      </div>
                     </div>
                     <Button
                       variant="destructive"
