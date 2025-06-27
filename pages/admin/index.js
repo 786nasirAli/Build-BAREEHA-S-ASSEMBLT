@@ -19,6 +19,11 @@ export default function AdminDashboard() {
     inStock: true,
   });
 
+  // Image upload states
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const [categoryForm, setCategoryForm] = useState({
     id: "",
     name: "",
