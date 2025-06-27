@@ -9,12 +9,14 @@ export default function Home({ products, categories }) {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">SAYA FASHION</h1>
+          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+            BAREEHAS ASSEMBLE
+          </h1>
           <p className="text-xl md:text-2xl text-brand-warm/90 mb-8">
-            Premium Pakistani Lawn & Fashion Collections
+            Premium Pakistani Fashion & Lifestyle Collections
           </p>
           <p className="text-lg text-brand-warm/80">
-            Discover the finest selection of lawn, embroidered, and cotton wear
+            Curated elegance for the modern Pakistani woman
           </p>
         </div>
       </div>
