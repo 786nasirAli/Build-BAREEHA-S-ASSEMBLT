@@ -288,16 +288,50 @@ export default function AdminDashboard() {
                     </option>
                   ))}
                 </select>
-                <input
-                  type="url"
-                  placeholder="Image URL"
-                  value={productForm.image}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, image: e.target.value })
-                  }
-                  className="w-full p-3 border rounded-md"
-                  required
-                />
+                {/* Image Upload Section */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Product Image
+                  </label>
+
+                  {/* File Upload */}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="w-full p-3 border rounded-md"
+                  />
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-md border"
+                      />
+                    </div>
+                  )}
+
+                  {/* Optional: URL Input as fallback */}
+                  <div className="pt-2">
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Or enter image URL:
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={productForm.image}
+                      onChange={(e) =>
+                        setProductForm({
+                          ...productForm,
+                          image: e.target.value,
+                        })
+                      }
+                      className="w-full p-2 border rounded-md text-sm"
+                    />
+                  </div>
+                </div>
                 <textarea
                   placeholder="Description"
                   value={productForm.description}
