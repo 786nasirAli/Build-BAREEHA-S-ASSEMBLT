@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "name": "Saya Lawn Printed Embroidered Stitched 3 Piece",
+    "price": 4999,
+    "category": "lawn",
+    "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvtc19jb3vudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
+    "description": "Beautiful lawn printed and embroidered 3-piece suit perfect for summer",
+    "inStock": true
+  },
+  {
+    "id": 2,
+    "name": "Embroidered Cotton Net Suit",
+    "price": 6999,
+    "category": "embroidered",
+    "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvtc19jb3vudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
+    "description": "Elegant embroidered cotton net suit with intricate threadwork",
+    "inStock": true
+  },
+  {
+    "id": 3,
+    "name": "Pure Cotton Lawn Unstitched",
+    "price": 3499,
+    "category": "cotton",
+    "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvtc19jb3vudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
+    "description": "High-quality pure cotton lawn fabric, unstitched 3-piece",
+    "inStock": true
+  },
+  {
+    "id": 4,
+    "name": "Saya Digital Printed Lawn",
+    "price": 4299,
+    "category": "lawn",
+    "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvtc19jb3vudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
+    "description": "Digital printed lawn with vibrant colors and modern designs",
+    "inStock": true
+  },
+  {
+    "id": 5,
+    "name": "Luxury Embroidered Chiffon",
+    "price": 8999,
+    "category": "embroidered",
+    "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
+    "description": "Premium chiffon with heavy embroidery work and beadwork",
+    "inStock": true
+  },
+  {
+    "id": 6,
+    "name": "Cotton Blend Casual Wear",
+    "price": 2999,
+    "category": "cotton",
+    "image": "https://cdn.builder.io/api/v1/assets/9f8497ec23da4379accd30975a8ae232/saya.pk_collections_saya-lawn-collection-printed-emrboirdered-stitched-unstitched-418206449896_page-2-phcursor-eyjhbgcioijiuzi1nij9.eyjzayi6inbyb2r1y3rfbgluzv9pdgvudcisinn2ijoxnjqsimqioijmiiwidwlkijo-73a9ab?format=webp&width=800",
+    "description": "Comfortable cotton blend perfect for daily wear",
+    "inStock": false
+  }
+]

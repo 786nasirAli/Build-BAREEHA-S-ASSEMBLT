@@ -1,0 +1,27 @@
+[
+  {
+    "id": "lawn",
+    "name": "Lawn",
+    "description": "Premium lawn fabric collections"
+  },
+  {
+    "id": "embroidered",
+    "name": "Embroidered",
+    "description": "Beautifully embroidered traditional wear"
+  },
+  {
+    "id": "cotton",
+    "name": "Cotton",
+    "description": "Pure cotton comfortable clothing"
+  },
+  {
+    "id": "chiffon",
+    "name": "Chiffon",
+    "description": "Elegant chiffon formal wear"
+  },
+  {
+    "id": "silk",
+    "name": "Silk",
+    "description": "Luxurious silk garments"
+  }
+]
