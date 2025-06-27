@@ -60,13 +60,21 @@ export default function ProductDetail({ product }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image */}
           <div className="aspect-[3/4] overflow-hidden rounded-lg bg-gray-100">
-            <Image
-              src={product.image}
-              alt={product.name}
-              width={600}
-              height={800}
-              className="w-full h-full object-cover"
-            />
+            {product.image.startsWith("/products/") ? (
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Image
+                src={product.image}
+                alt={product.name}
+                width={600}
+                height={800}
+                className="w-full h-full object-cover"
+              />
+            )}
           </div>
 
           {/* Product Info */}
