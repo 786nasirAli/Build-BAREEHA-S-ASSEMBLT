@@ -57,17 +57,77 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async () => {
+    if (!selectedFile) return null;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    try {
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.imagePath;
+      } else {
+        const error = await response.json();
+        alert(`Upload failed: ${error.error}`);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Error uploading image");
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    setIsUploading(true);
+
     try {
+      // First upload the image if one is selected
+      let imagePath = productForm.image; // Use existing URL if provided
+
+      if (selectedFile) {
+        imagePath = await uploadImage();
+        if (!imagePath) {
+          setIsUploading(false);
+          return; // Stop if image upload failed
+        }
+      }
+
+      // Then create the product
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...productForm,
           price: parseInt(productForm.price),
+          image: imagePath,
         }),
       });
+
       if (response.ok) {
         setProductForm({
           name: "",
@@ -77,12 +137,16 @@ export default function AdminDashboard() {
           description: "",
           inStock: true,
         });
+        setSelectedFile(null);
+        setImagePreview(null);
         fetchProducts();
         alert("Product added successfully!");
       }
     } catch (error) {
       console.error("Error adding product:", error);
       alert("Error adding product");
+    } finally {
+      setIsUploading(false);
     }
   };
 
