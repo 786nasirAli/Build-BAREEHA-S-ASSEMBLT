@@ -1,178 +1,207 @@
 import connectDB from "../../lib/db";
 import { Order, Product } from "../../models";
-import nodemailer from "nodemailer";
+import {
+  sendOrderConfirmationEmail,
+  sendAdminNotificationEmail,
+} from "../../lib/emailService";
 
-// Email configuration
-const transporter = nodemailer.createTransporter({
-  service: "gmail", // or your email service
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
+// Generate unique order number
 const generateOrderNumber = () => {
-  return `BA${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  const timestamp = Date.now().toString().slice(-6);
+  const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+  return `BA${timestamp}${random}`;
 };
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
+  await connectDB();
 
-  try {
-    await connectDB();
+  switch (req.method) {
+    case "GET":
+      try {
+        const { page = 1, limit = 10, status, userId } = req.query;
 
-    const { customerInfo, items, total, paymentMethod, notes } = req.body;
+        // Build query
+        let query = {};
+        if (status) query.status = status;
+        if (userId) query.user = userId;
 
-    // Validate required fields
-    if (
-      !customerInfo.name ||
-      !customerInfo.email ||
-      !customerInfo.phone ||
-      !customerInfo.address ||
-      !customerInfo.city ||
-      !items ||
-      items.length === 0
-    ) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+        // Calculate pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Generate unique order number
-    const orderNumber = generateOrderNumber();
+        // Get orders with pagination
+        const orders = await Order.find(query)
+          .populate("items.product", "name image price")
+          .populate("user", "name email")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean();
 
-    // Create order
-    const order = await Order.create({
-      orderNumber,
-      customerInfo,
-      items,
-      total,
-      paymentMethod,
-      notes,
-    });
+        // Get total count for pagination
+        const total = await Order.countDocuments(query);
 
-    // Populate product details for email
-    const populatedOrder = await Order.findById(order._id).populate(
-      "items.product",
-    );
+        res.status(200).json({
+          orders,
+          pagination: {
+            current: parseInt(page),
+            pages: Math.ceil(total / parseInt(limit)),
+            total,
+            hasNext: skip + orders.length < total,
+            hasPrev: parseInt(page) > 1,
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        res.status(500).json({ message: "Error fetching orders" });
+      }
+      break;
 
-    // Send confirmation email to customer
-    const customerEmailHTML = `
-      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-        <h1 style="color: #2D5B4A;">Order Confirmation - Bareehas Assemble</h1>
-        <p>Dear ${customerInfo.name},</p>
-        <p>Thank you for your order! Your order has been received and is being processed.</p>
-        
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h2>Order Details</h2>
-          <p><strong>Order Number:</strong> ${orderNumber}</p>
-          <p><strong>Total Amount:</strong> PKR ${total.toLocaleString()}</p>
-          <p><strong>Payment Method:</strong> ${paymentMethod.toUpperCase()}</p>
-        </div>
+    case "POST":
+      try {
+        const {
+          items,
+          customerInfo,
+          paymentMethod = "cod",
+          notes,
+          userId,
+        } = req.body;
 
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h3>Items Ordered:</h3>
-          ${items
-            .map(
-              (item) => `
-            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
-              <p><strong>Product:</strong> ${item.product?.name || "Product"}</p>
-              <p><strong>Quantity:</strong> ${item.quantity}</p>
-              <p><strong>Price:</strong> PKR ${(
-                item.price * item.quantity
-              ).toLocaleString()}</p>
-            </div>
-          `,
-            )
-            .join("")}
-        </div>
+        // Validation
+        if (!items || !Array.isArray(items) || items.length === 0) {
+          return res.status(400).json({ message: "Order items are required" });
+        }
 
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h3>Delivery Information:</h3>
-          <p><strong>Address:</strong> ${customerInfo.address}</p>
-          <p><strong>City:</strong> ${customerInfo.city}</p>
-          <p><strong>Phone:</strong> ${customerInfo.phone}</p>
-        </div>
+        if (
+          !customerInfo ||
+          !customerInfo.name ||
+          !customerInfo.email ||
+          !customerInfo.phone ||
+          !customerInfo.address ||
+          !customerInfo.city
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Complete customer information is required" });
+        }
 
-        <p>We will contact you soon to confirm your order and arrange delivery.</p>
-        <p>Thank you for choosing Bareehas Assemble!</p>
-        
-        <div style="margin-top: 40px; text-align: center; color: #666;">
-          <p>Bareehas Assemble - Premium Pakistani Fashion</p>
-        </div>
-      </div>
-    `;
+        // Validate and calculate order total
+        let calculatedTotal = 0;
+        const validatedItems = [];
 
-    // Send confirmation email to admin
-    const adminEmailHTML = `
-      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-        <h1 style="color: #2D5B4A;">New Order Received - Bareehas Assemble</h1>
-        
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h2>Order Details</h2>
-          <p><strong>Order Number:</strong> ${orderNumber}</p>
-          <p><strong>Total Amount:</strong> PKR ${total.toLocaleString()}</p>
-          <p><strong>Payment Method:</strong> ${paymentMethod.toUpperCase()}</p>
-          <p><strong>Order Date:</strong> ${new Date().toLocaleString()}</p>
-        </div>
+        for (const item of items) {
+          const product = await Product.findById(item.productId);
+          if (!product) {
+            return res
+              .status(400)
+              .json({ message: `Product not found: ${item.productId}` });
+          }
 
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h3>Customer Information:</h3>
-          <p><strong>Name:</strong> ${customerInfo.name}</p>
-          <p><strong>Email:</strong> ${customerInfo.email}</p>
-          <p><strong>Phone:</strong> ${customerInfo.phone}</p>
-          <p><strong>Address:</strong> ${customerInfo.address}</p>
-          <p><strong>City:</strong> ${customerInfo.city}</p>
-          ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ""}
-        </div>
+          if (!product.inStock || product.inventory < item.quantity) {
+            return res.status(400).json({
+              message: `Insufficient stock for product: ${product.name}`,
+            });
+          }
 
-        <div style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <h3>Items Ordered:</h3>
-          ${items
-            .map(
-              (item) => `
-            <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
-              <p><strong>Product:</strong> ${item.product?.name || "Product"}</p>
-              <p><strong>Quantity:</strong> ${item.quantity}</p>
-              <p><strong>Price:</strong> PKR ${(
-                item.price * item.quantity
-              ).toLocaleString()}</p>
-            </div>
-          `,
-            )
-            .join("")}
-        </div>
-      </div>
-    `;
+          const itemTotal = product.price * item.quantity;
+          calculatedTotal += itemTotal;
 
-    try {
-      // Send email to customer
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: customerInfo.email,
-        subject: `Order Confirmation - ${orderNumber}`,
-        html: customerEmailHTML,
-      });
+          validatedItems.push({
+            product: product._id,
+            name: product.name, // Store name for easier access
+            quantity: item.quantity,
+            price: product.price,
+          });
 
-      // Send email to admin
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-        subject: `New Order Received - ${orderNumber}`,
-        html: adminEmailHTML,
-      });
-    } catch (emailError) {
-      console.error("Email sending failed:", emailError);
-      // Continue without failing the order creation
-    }
+          // Update product inventory
+          await Product.findByIdAndUpdate(product._id, {
+            $inc: { inventory: -item.quantity },
+            inStock: product.inventory - item.quantity > 0,
+          });
+        }
 
-    res.status(201).json({
-      message: "Order placed successfully",
-      orderNumber,
-      order: populatedOrder,
-    });
-  } catch (error) {
-    console.error("Order creation error:", error);
-    res.status(500).json({ message: "Failed to create order" });
+        // Generate order number
+        const orderNumber = generateOrderNumber();
+
+        // Create order
+        const order = await Order.create({
+          orderNumber,
+          user: userId || null,
+          customerInfo,
+          items: validatedItems,
+          total: calculatedTotal,
+          paymentMethod,
+          notes: notes || "",
+          status: "pending",
+        });
+
+        // Populate the order for email
+        await order.populate("items.product", "name image");
+
+        // Send confirmation email to customer
+        try {
+          await sendOrderConfirmationEmail(order, customerInfo);
+        } catch (emailError) {
+          console.error("Error sending customer email:", emailError);
+          // Don't fail the order if email fails
+        }
+
+        // Send notification email to admin
+        try {
+          await sendAdminNotificationEmail(order, customerInfo);
+        } catch (emailError) {
+          console.error("Error sending admin email:", emailError);
+          // Don't fail the order if email fails
+        }
+
+        res.status(201).json({
+          message: "Order created successfully",
+          order: {
+            orderNumber: order.orderNumber,
+            _id: order._id,
+            total: order.total,
+            status: order.status,
+            customerInfo: order.customerInfo,
+          },
+        });
+      } catch (error) {
+        console.error("Error creating order:", error);
+        res.status(500).json({ message: "Error creating order" });
+      }
+      break;
+
+    case "PUT":
+      try {
+        const { orderId, status, notes } = req.body;
+
+        if (!orderId) {
+          return res.status(400).json({ message: "Order ID is required" });
+        }
+
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (notes !== undefined) updateData.notes = notes;
+
+        const order = await Order.findByIdAndUpdate(orderId, updateData, {
+          new: true,
+          runValidators: true,
+        }).populate("items.product", "name image price");
+
+        if (!order) {
+          return res.status(404).json({ message: "Order not found" });
+        }
+
+        res.status(200).json({
+          message: "Order updated successfully",
+          order,
+        });
+      } catch (error) {
+        console.error("Error updating order:", error);
+        res.status(500).json({ message: "Error updating order" });
+      }
+      break;
+
+    default:
+      res.setHeader("Allow", ["GET", "POST", "PUT"]);
+      res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
 }
