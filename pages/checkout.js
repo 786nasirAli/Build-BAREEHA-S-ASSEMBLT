@@ -64,7 +64,7 @@ export default function Checkout() {
 
       if (response.ok) {
         clearCart();
-        router.push(`/order-confirmation/${data.orderNumber}`);
+        router.push(`/order-confirmation/${data.order.orderNumber}`);
       } else {
         setError(data.message || "Failed to place order");
       }
