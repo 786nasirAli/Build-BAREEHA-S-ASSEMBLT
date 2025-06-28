@@ -42,13 +42,14 @@ export default function Checkout() {
       const orderData = {
         customerInfo: formData,
         items: items.map((item) => ({
-          product: item.id,
+          productId: item._id || item.id,
           quantity: item.quantity,
           price: item.price,
         })),
         total: getCartTotal(),
         paymentMethod: formData.paymentMethod,
         notes: formData.notes,
+        userId: session?.user?.id || null,
       };
 
       const response = await fetch("/api/orders", {
