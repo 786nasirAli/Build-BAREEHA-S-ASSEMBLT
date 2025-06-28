@@ -2,10 +2,13 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useCart } from "../context/CartContext";
 import { Button } from "./ui/button";
+import { ShoppingCart, User, Menu } from "lucide-react";
+import { useState } from "react";
 
 export default function Layout({ children }) {
   const { data: session } = useSession();
-  const { getCartCount } = useCart();
+  const { getCartItemCount } = useCart();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-brand-light">
