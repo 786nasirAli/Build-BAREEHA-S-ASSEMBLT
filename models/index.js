@@ -129,8 +129,11 @@ const orderSchema = new mongoose.Schema(
     items: [
       {
         product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
+          type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and string/number
+          required: true,
+        },
+        name: {
+          type: String,
           required: true,
         },
         quantity: {
