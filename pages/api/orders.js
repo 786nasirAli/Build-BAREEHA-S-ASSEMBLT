@@ -89,16 +89,59 @@ export default async function handler(req, res) {
         const validatedItems = [];
 
         for (const item of items) {
-          const product = await Product.findById(item.productId);
+          let product = null;
+
+          // Try to find product in MongoDB first (for admin-created products)
+          try {
+            if (
+              typeof item.productId === "string" &&
+              item.productId.length === 24
+            ) {
+              product = await Product.findById(item.productId);
+            }
+          } catch (error) {
+            // Not a valid ObjectId, continue to JSON fallback
+          }
+
+          // If not found in MongoDB, check JSON products file (for demo products)
+          if (!product) {
+            const fs = require("fs");
+            const path = require("path");
+            const productsPath = path.join(
+              process.cwd(),
+              "data",
+              "products.json",
+            );
+
+            try {
+              const productsData = fs.readFileSync(productsPath, "utf8");
+              const products = JSON.parse(productsData);
+              product = products.find((p) => p.id == item.productId);
+
+              // Convert JSON product to match expected format
+              if (product) {
+                product = {
+                  _id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  inStock: product.inStock,
+                  inventory: product.inventory || 999, // Default high inventory for JSON products
+                };
+              }
+            } catch (error) {
+              console.error("Error reading products.json:", error);
+            }
+          }
+
           if (!product) {
             return res
               .status(400)
               .json({ message: `Product not found: ${item.productId}` });
           }
 
-          if (!product.inStock || product.inventory < item.quantity) {
+          if (!product.inStock) {
             return res.status(400).json({
-              message: `Insufficient stock for product: ${product.name}`,
+              message: `Product out of stock: ${product.name}`,
             });
           }
 
@@ -112,11 +155,20 @@ export default async function handler(req, res) {
             price: product.price,
           });
 
-          // Update product inventory
-          await Product.findByIdAndUpdate(product._id, {
-            $inc: { inventory: -item.quantity },
-            inStock: product.inventory - item.quantity > 0,
-          });
+          // Only update inventory for MongoDB products (not JSON products)
+          if (typeof product._id === "string" && product._id.length === 24) {
+            try {
+              await Product.findByIdAndUpdate(product._id, {
+                $inc: { inventory: -item.quantity },
+                inStock: product.inventory - item.quantity > 0,
+              });
+            } catch (error) {
+              console.warn(
+                "Could not update inventory for product:",
+                product._id,
+              );
+            }
+          }
         }
 
         // Generate order number
