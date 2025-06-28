@@ -1,88 +1,138 @@
-import fs from "fs";
-import path from "path";
+import connectDB from "../../lib/db";
+import { Category } from "../../models";
 
-const dataFilePath = path.join(process.cwd(), "data/categories.json");
+export default async function handler(req, res) {
+  await connectDB();
 
-function readData() {
-  const jsonData = fs.readFileSync(dataFilePath, "utf8");
-  return JSON.parse(jsonData);
-}
-
-function writeData(data) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-}
-
-export default function handler(req, res) {
-  const { method } = req;
-
-  switch (method) {
+  switch (req.method) {
     case "GET":
       try {
-        const categories = readData();
-        res.status(200).json(categories);
+        const categories = await Category.find({})
+          .sort({ createdAt: -1 })
+          .lean();
+
+        res.status(200).json({ categories });
       } catch (error) {
-        res.status(500).json({ error: "Failed to read categories" });
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ message: "Error fetching categories" });
       }
       break;
 
     case "POST":
       try {
-        const categories = readData();
-        const newCategory = req.body;
+        const { name, slug, description, image } = req.body;
 
-        // Check if category ID already exists
-        if (categories.find((cat) => cat.id === newCategory.id)) {
-          return res.status(400).json({ error: "Category ID already exists" });
+        // Validation
+        if (!name) {
+          return res.status(400).json({ message: "Category name is required" });
         }
 
-        categories.push(newCategory);
-        writeData(categories);
-        res.status(201).json(newCategory);
+        // Generate slug if not provided
+        const categorySlug =
+          slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+        // Check if slug already exists
+        const existingCategory = await Category.findOne({
+          slug: categorySlug,
+        });
+        if (existingCategory) {
+          return res
+            .status(400)
+            .json({ message: "Category with this slug already exists" });
+        }
+
+        const category = await Category.create({
+          name,
+          slug: categorySlug,
+          description: description || "",
+          image: image || "",
+        });
+
+        res.status(201).json({
+          message: "Category created successfully",
+          category,
+        });
       } catch (error) {
-        res.status(500).json({ error: "Failed to add category" });
+        console.error("Error creating category:", error);
+        res.status(500).json({ message: "Error creating category" });
       }
       break;
 
     case "PUT":
       try {
-        const categories = readData();
-        const { id } = req.query;
-        const categoryIndex = categories.findIndex((cat) => cat.id === id);
+        const { id, name, slug, description, image } = req.body;
 
-        if (categoryIndex === -1) {
-          return res.status(404).json({ error: "Category not found" });
+        if (!id || !name) {
+          return res
+            .status(400)
+            .json({ message: "Category ID and name are required" });
         }
 
-        categories[categoryIndex] = {
-          ...categories[categoryIndex],
-          ...req.body,
-        };
-        writeData(categories);
-        res.status(200).json(categories[categoryIndex]);
+        // Generate slug if not provided
+        const categorySlug =
+          slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+        // Check if slug already exists (excluding current category)
+        const existingCategory = await Category.findOne({
+          slug: categorySlug,
+          _id: { $ne: id },
+        });
+        if (existingCategory) {
+          return res
+            .status(400)
+            .json({ message: "Category with this slug already exists" });
+        }
+
+        const category = await Category.findByIdAndUpdate(
+          id,
+          {
+            name,
+            slug: categorySlug,
+            description: description || "",
+            image: image || "",
+          },
+          { new: true, runValidators: true },
+        );
+
+        if (!category) {
+          return res.status(404).json({ message: "Category not found" });
+        }
+
+        res.status(200).json({
+          message: "Category updated successfully",
+          category,
+        });
       } catch (error) {
-        res.status(500).json({ error: "Failed to update category" });
+        console.error("Error updating category:", error);
+        res.status(500).json({ message: "Error updating category" });
       }
       break;
 
     case "DELETE":
       try {
-        const categories = readData();
         const { id } = req.query;
-        const filteredCategories = categories.filter((cat) => cat.id !== id);
 
-        if (filteredCategories.length === categories.length) {
-          return res.status(404).json({ error: "Category not found" });
+        if (!id) {
+          return res.status(400).json({ message: "Category ID is required" });
         }
 
-        writeData(filteredCategories);
-        res.status(200).json({ message: "Category deleted successfully" });
+        const category = await Category.findByIdAndDelete(id);
+
+        if (!category) {
+          return res.status(404).json({ message: "Category not found" });
+        }
+
+        res.status(200).json({
+          message: "Category deleted successfully",
+        });
       } catch (error) {
-        res.status(500).json({ error: "Failed to delete category" });
+        console.error("Error deleting category:", error);
+        res.status(500).json({ message: "Error deleting category" });
       }
       break;
 
     default:
       res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
-      res.status(405).end(`Method ${method} Not Allowed`);
+      res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
 }
