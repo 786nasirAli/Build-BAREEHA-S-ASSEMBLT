@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Layout from "../../components/Layout";
 import { Button } from "../../components/ui/button";
+import { FcGoogle } from "react-icons/fc";
+import { toast } from "react-hot-toast";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -12,6 +15,7 @@ export default function SignUp() {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -22,6 +26,7 @@ export default function SignUp() {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
+      toast.error("Passwords do not match");
       setIsLoading(false);
       return;
     }
@@ -42,14 +47,38 @@ export default function SignUp() {
       const data = await response.json();
 
       if (response.ok) {
+        toast.success("Account created successfully!");
         router.push("/auth/signin?message=Registration successful");
       } else {
         setError(data.message || "Registration failed");
+        toast.error(data.message || "Registration failed");
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const result = await signIn("google", {
+        redirect: false,
+        callbackUrl: "/",
+      });
+
+      if (result?.error) {
+        toast.error("Google sign up failed");
+      } else {
+        toast.success("Successfully signed up with Google!");
+        router.push("/");
+      }
+    } catch (error) {
+      toast.error("Google sign up failed");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -64,13 +93,36 @@ export default function SignUp() {
     <Layout>
       <div className="max-w-md mx-auto mt-16 px-4">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-center mb-8">Sign Up</h1>
+          <h1 className="text-2xl font-bold text-center mb-8 text-brand-primary">
+            Create Account
+          </h1>
 
           {error && (
             <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
               {error}
             </div>
           )}
+
+          {/* Google Sign Up Button */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mb-6 border-gray-300 hover:bg-gray-50"
+            onClick={handleGoogleSignUp}
+            disabled={isGoogleLoading}
+          >
+            <FcGoogle className="mr-3 h-5 w-5" />
+            {isGoogleLoading ? "Creating account..." : "Continue with Google"}
+          </Button>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -82,7 +134,7 @@ export default function SignUp() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full p-3 border rounded-md"
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                 required
               />
             </div>
@@ -96,7 +148,7 @@ export default function SignUp() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full p-3 border rounded-md"
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                 required
               />
             </div>
@@ -110,10 +162,11 @@ export default function SignUp() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full p-3 border rounded-md"
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                 minLength="6"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
             </div>
 
             <div>
@@ -125,14 +178,18 @@ export default function SignUp() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full p-3 border rounded-md"
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                 minLength="6"
                 required
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Sign Up"}
+            <Button
+              type="submit"
+              className="w-full bg-brand-primary hover:bg-brand-primary/90"
+              disabled={isLoading}
+            >
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
@@ -141,7 +198,7 @@ export default function SignUp() {
               Already have an account?{" "}
               <Link
                 href="/auth/signin"
-                className="text-brand-primary hover:underline"
+                className="text-brand-primary hover:underline font-medium"
               >
                 Sign In
               </Link>
