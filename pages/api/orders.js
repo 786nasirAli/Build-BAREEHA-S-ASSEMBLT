@@ -149,7 +149,7 @@ export default async function handler(req, res) {
           calculatedTotal += itemTotal;
 
           validatedItems.push({
-            product: product._id,
+            product: String(product._id), // Store as string to avoid ObjectId issues
             name: product.name, // Store name for easier access
             quantity: item.quantity,
             price: product.price,
