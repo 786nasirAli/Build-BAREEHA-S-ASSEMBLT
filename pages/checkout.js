@@ -225,7 +225,7 @@ export default function Checkout() {
 
             <div className="space-y-4 mb-6">
               {items.map((item) => (
-                <div key={item.id} className="flex items-center">
+                <div key={item._id || item.id} className="flex items-center">
                   <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                     <img
                       src={item.image}
