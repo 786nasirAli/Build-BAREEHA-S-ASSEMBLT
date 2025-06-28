@@ -8,10 +8,13 @@ import { Button } from "../components/ui/button";
 
 export default function Checkout() {
   const { data: session } = useSession();
-  const { items, getCartTotal, clearCart } = useCart();
+  const { cart, getCartTotal, clearCart } = useCart();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Safe access to cart items
+  const items = cart?.items || [];
 
   const [formData, setFormData] = useState({
     name: session?.user?.name || "",
