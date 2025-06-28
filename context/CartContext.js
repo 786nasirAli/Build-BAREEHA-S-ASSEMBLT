@@ -181,6 +181,7 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     cart,
+    items: cart.items || [], // Provide safe access to items
     addToCart,
     removeFromCart,
     updateQuantity,
