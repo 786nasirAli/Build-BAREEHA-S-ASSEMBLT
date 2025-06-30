@@ -33,20 +33,32 @@ export default function AdminFixed() {
   const [imagePreview, setImagePreview] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    // Add a small delay to prevent hot reload fetch issues
-    const timer = setTimeout(() => {
-      loadData();
-    }, 100);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    // Only load data when component is properly mounted and hasn't loaded yet
+    if (!hasLoaded) {
+      const timer = setTimeout(() => {
+        loadData();
+      }, 500); // Increased delay for stability
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasLoaded]);
 
   const loadData = async () => {
+    // Prevent multiple simultaneous loads
+    if (hasLoaded) return;
+
     try {
-      await Promise.all([fetchCategories(), fetchProducts()]);
+      setHasLoaded(true);
+      // Load categories first, then products
+      await fetchCategories();
+      await fetchProducts();
     } catch (error) {
       console.error("Error in loadData:", error);
+      // Reset if loading failed
+      setHasLoaded(false);
     }
   };
 
