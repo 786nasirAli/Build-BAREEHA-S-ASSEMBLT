@@ -289,13 +289,23 @@ export default function AdminDirect() {
           <p className="mb-4">
             Access the complete admin dashboard with all management tools
           </p>
-          <Button
-            onClick={() => router.push("/admin")}
-            variant="secondary"
-            size="lg"
-          >
-            Open Full Admin Dashboard →
-          </Button>
+          <div className="space-y-4">
+            <Button
+              onClick={() => router.push("/admin")}
+              variant="secondary"
+              size="lg"
+              className="mr-4"
+            >
+              Open Full Admin Dashboard →
+            </Button>
+            <Button
+              onClick={() => window.open("/admin", "_blank")}
+              variant="outline"
+              size="lg"
+            >
+              Open in New Tab
+            </Button>
+          </div>
         </div>
       </div>
     </Layout>
