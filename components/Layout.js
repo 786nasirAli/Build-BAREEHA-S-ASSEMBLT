@@ -48,7 +48,7 @@ export default function Layout({ children }) {
                 Cotton
               </Link>
               <Link
-                href="/admin-direct"
+                href="/admin-fixed"
                 className="text-brand-primary hover:text-brand-primary/80 font-medium"
               >
                 Admin Dashboard
