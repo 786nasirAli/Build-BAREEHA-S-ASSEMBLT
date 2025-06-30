@@ -153,6 +153,50 @@ export default function AdminDashboard() {
     calculateStats();
   }, [products, orders]);
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async () => {
+    if (!selectedFile) return null;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    try {
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.imageUrl;
+      } else {
+        const error = await response.json();
+        toast.error(`Upload failed: ${error.error}`);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Error uploading image");
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!productForm.name || !productForm.price || !productForm.category) {
@@ -160,12 +204,26 @@ export default function AdminDashboard() {
       return;
     }
 
+    setIsUploading(true);
+
     try {
+      let finalImageUrl = productForm.image;
+
+      // Upload image if file is selected
+      if (selectedFile) {
+        finalImageUrl = await uploadImage();
+        if (!finalImageUrl) {
+          setIsUploading(false);
+          return;
+        }
+      }
+
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...productForm,
+          image: finalImageUrl,
           price: parseFloat(productForm.price) || 0,
           inventory: parseInt(productForm.inventory) || 0,
         }),
@@ -182,6 +240,8 @@ export default function AdminDashboard() {
           inventory: "",
           featured: false,
         });
+        setSelectedFile(null);
+        setImagePreview("");
         fetchProducts();
       } else {
         const error = await response.json();
@@ -190,6 +250,8 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Error adding product:", error);
       toast.error("Failed to add product");
+    } finally {
+      setIsUploading(false);
     }
   };
 
