@@ -48,6 +48,10 @@ export default function AdminDashboard() {
     featured: false,
   });
 
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
   const [categoryForm, setCategoryForm] = useState({
     name: "",
     description: "",
