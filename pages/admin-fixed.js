@@ -375,8 +375,15 @@ export default function AdminFixed() {
       });
 
       clearTimeout(timeoutId);
-      const responseData = await response.json();
-      console.log("Product API response:", responseData);
+
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log("Product API response:", responseData);
+      } catch (jsonError) {
+        console.error("Error parsing response:", jsonError);
+        responseData = { message: "Invalid response from server" };
+      }
 
       if (response.ok) {
         toast.success("Product added successfully!");
@@ -395,7 +402,10 @@ export default function AdminFixed() {
         // Refresh products
         await fetchProducts();
       } else {
-        toast.error(responseData.message || "Failed to add product");
+        console.error("API Error:", response.status, responseData);
+        toast.error(
+          responseData.message || `Failed to add product (${response.status})`,
+        );
       }
     } catch (error) {
       if (error.name === "AbortError") {
