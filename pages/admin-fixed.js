@@ -288,12 +288,17 @@ export default function AdminFixed() {
 
       console.log("Sending product data:", productData);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(productData),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       const responseData = await response.json();
       console.log("Product API response:", responseData);
 
@@ -317,8 +322,12 @@ export default function AdminFixed() {
         toast.error(responseData.message || "Failed to add product");
       }
     } catch (error) {
-      console.error("Error adding product:", error);
-      toast.error("Failed to add product");
+      if (error.name === "AbortError") {
+        toast.error("Request timed out");
+      } else {
+        console.error("Error adding product:", error);
+        toast.error("Failed to add product");
+      }
     } finally {
       setIsUploading(false);
     }
