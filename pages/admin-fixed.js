@@ -136,9 +136,20 @@ export default function AdminFixed() {
   const seedCategories = async () => {
     try {
       setIsLoading(true);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch("/api/seed-categories", {
         method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         toast.success("Categories created successfully!");
@@ -148,8 +159,12 @@ export default function AdminFixed() {
         toast.error(error.message || "Failed to seed categories");
       }
     } catch (error) {
-      console.error("Error seeding categories:", error);
-      toast.error("Failed to seed categories");
+      if (error.name === "AbortError") {
+        toast.error("Request timed out");
+      } else {
+        console.error("Error seeding categories:", error);
+        toast.error("Failed to seed categories");
+      }
     } finally {
       setIsLoading(false);
     }
