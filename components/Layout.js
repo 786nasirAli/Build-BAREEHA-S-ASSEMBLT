@@ -3,74 +3,21 @@ import { useSession, signOut } from "next-auth/react";
 import { useCart } from "../context/CartContext";
 import { Button } from "./ui/button";
 import { ShoppingCart, User, Menu, Settings, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Layout({ children }) {
   const { data: session } = useSession();
   const { getCartItemCount } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
 
-  // Fetch categories dynamically with cleanup
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadCategories = async () => {
-      if (isMounted) {
-        await fetchCategories();
-      }
-    };
-
-    // Add delay to avoid React refresh conflicts
-    const timer = setTimeout(loadCategories, 100);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      // Add a timeout and better error handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-      const response = await fetch("/api/categories", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data.categories || []);
-        console.log(
-          "Categories loaded successfully:",
-          data.categories?.length || 0,
-        );
-      } else {
-        console.warn("Categories API returned non-OK status:", response.status);
-        setFallbackCategories();
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error.message);
-      setFallbackCategories();
-    }
-  };
-
-  const setFallbackCategories = () => {
-    setCategories([
-      { _id: "1", name: "Lawn", slug: "lawn" },
-      { _id: "2", name: "Embroidered", slug: "embroidered" },
-      { _id: "3", name: "Cotton", slug: "cotton" },
-      { _id: "4", name: "Chiffon", slug: "chiffon" },
-    ]);
-  };
+  // Static categories to avoid fetch errors
+  const categories = [
+    { _id: "1", name: "Lawn", slug: "lawn" },
+    { _id: "2", name: "Embroidered", slug: "embroidered" },
+    { _id: "3", name: "Cotton", slug: "cotton" },
+    { _id: "4", name: "Chiffon", slug: "chiffon" },
+    { _id: "5", name: "Silk", slug: "silk" },
+  ];
 
   return (
     <div className="min-h-screen bg-brand-light">
@@ -92,7 +39,7 @@ export default function Layout({ children }) {
                 🏠 Home
               </Link>
 
-              {/* Dynamic Categories */}
+              {/* Static Categories (first 4) */}
               {categories.slice(0, 4).map((category) => (
                 <Link
                   key={category._id}
@@ -102,15 +49,6 @@ export default function Layout({ children }) {
                   {category.name}
                 </Link>
               ))}
-
-              {categories.length > 4 && (
-                <button
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="text-gray-700 hover:text-brand-primary"
-                >
-                  More...
-                </button>
-              )}
 
               {/* Admin Dashboard with Icon */}
               <Link
@@ -122,15 +60,7 @@ export default function Layout({ children }) {
               </Link>
             </nav>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-md text-gray-700 hover:text-brand-primary"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-
-            {/* User Actions */}
+            {/* Right Side - Cart and Auth */}
             <div className="flex items-center space-x-4">
               {/* Cart */}
               <Link href="/cart">
@@ -145,14 +75,22 @@ export default function Layout({ children }) {
                 </Button>
               </Link>
 
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="md:hidden p-2 rounded-md text-gray-700 hover:text-brand-primary"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+
               {/* Auth */}
               {session ? (
-                <div className="flex items-center space-x-2">
+                <div className="hidden md:flex items-center space-x-2">
                   <span className="text-sm text-gray-700">
                     {session.user.name}
                   </span>
                   {session.user.role === "admin" && (
-                    <Link href="/admin">
+                    <Link href="/admin-fixed">
                       <Button variant="outline" size="sm">
                         Admin
                       </Button>
@@ -163,7 +101,7 @@ export default function Layout({ children }) {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="hidden md:flex items-center space-x-2">
                   <Link href="/auth/signin">
                     <Button variant="outline" size="sm">
                       Sign In
@@ -221,9 +159,6 @@ export default function Layout({ children }) {
                     📁 {category.name}
                   </Link>
                 ))}
-                {categories.length === 0 && (
-                  <p className="text-sm text-gray-500">No categories yet</p>
-                )}
               </div>
 
               <div className="border-t pt-4">
@@ -246,6 +181,44 @@ export default function Layout({ children }) {
                   <ShoppingCart className="h-4 w-4 inline mr-2" />
                   Cart ({getCartItemCount()})
                 </Link>
+              </div>
+
+              {/* Mobile Auth */}
+              <div className="border-t pt-4">
+                {session ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">
+                      Signed in as: {session.user.name}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => signOut()}
+                      className="w-full"
+                    >
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Link
+                      href="/auth/signin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Button variant="outline" size="sm" className="w-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Button size="sm" className="w-full">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
