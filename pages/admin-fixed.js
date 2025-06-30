@@ -62,9 +62,19 @@ export default function AdminFixed() {
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (showToast = false) => {
     try {
+      if (showToast) setIsLoading(true);
       console.log("Fetching categories...");
+
+      // Skip fetch if in hot reload state
+      if (
+        typeof window !== "undefined" &&
+        window.location.href.includes("reload=")
+      ) {
+        console.log("Skipping fetch during hot reload");
+        return;
+      }
 
       // Add AbortController to handle cleanup
       const controller = new AbortController();
@@ -86,6 +96,7 @@ export default function AdminFixed() {
         if (data.categories && Array.isArray(data.categories)) {
           setCategories(data.categories);
           console.log("Categories set:", data.categories);
+          if (showToast) toast.success("Categories refreshed!");
         } else {
           console.log("No categories in response");
           setCategories([]);
@@ -93,14 +104,18 @@ export default function AdminFixed() {
       } else {
         console.error("Categories API failed:", response.status);
         setCategories([]);
+        if (showToast) toast.error("Failed to load categories");
       }
     } catch (error) {
       if (error.name === "AbortError") {
         console.log("Categories fetch was aborted");
       } else {
         console.error("Error fetching categories:", error);
+        if (showToast) toast.error("Error loading categories");
       }
       setCategories([]);
+    } finally {
+      if (showToast) setIsLoading(false);
     }
   };
 
