@@ -367,22 +367,42 @@ export default function AdminFixed() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-      const response = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productData),
-        signal: controller.signal,
-      });
+      let response;
+      try {
+        response = await fetch("/api/products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(productData),
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
 
       clearTimeout(timeoutId);
+      console.log("Response status:", response.status, "OK:", response.ok);
 
       let responseData;
       try {
-        responseData = await response.json();
+        // Clone the response before reading to avoid "body stream already read" error
+        const responseClone = response.clone();
+        responseData = await responseClone.json();
         console.log("Product API response:", responseData);
       } catch (jsonError) {
-        console.error("Error parsing response:", jsonError);
-        responseData = { message: "Invalid response from server" };
+        console.error("Error parsing JSON response:", jsonError);
+        // Try to get response as text if JSON parsing fails
+        try {
+          const responseText = await response.text();
+          console.log("Response as text:", responseText);
+          responseData = { message: `Server error: ${responseText}` };
+        } catch (textError) {
+          console.error("Error reading response as text:", textError);
+          responseData = { message: "Unable to read server response" };
+        }
       }
 
       if (response.ok) {
