@@ -11,6 +11,29 @@ export default function Layout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState([]);
 
+  // Fetch categories dynamically
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/categories");
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.categories || []);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      // Fallback categories
+      setCategories([
+        { _id: "1", name: "Lawn", slug: "lawn" },
+        { _id: "2", name: "Embroidered", slug: "embroidered" },
+        { _id: "3", name: "Cotton", slug: "cotton" },
+      ]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-brand-light">
       {/* Header */}
