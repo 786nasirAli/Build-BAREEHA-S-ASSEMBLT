@@ -387,22 +387,30 @@ export default function AdminFixed() {
       console.log("Response status:", response.status, "OK:", response.ok);
 
       let responseData;
+      let responseText;
+
       try {
-        // Clone the response before reading to avoid "body stream already read" error
-        const responseClone = response.clone();
-        responseData = await responseClone.json();
-        console.log("Product API response:", responseData);
-      } catch (jsonError) {
-        console.error("Error parsing JSON response:", jsonError);
-        // Try to get response as text if JSON parsing fails
-        try {
-          const responseText = await response.text();
-          console.log("Response as text:", responseText);
-          responseData = { message: `Server error: ${responseText}` };
-        } catch (textError) {
-          console.error("Error reading response as text:", textError);
-          responseData = { message: "Unable to read server response" };
+        // Read response as text first
+        responseText = await response.text();
+        console.log("Raw response:", responseText);
+
+        // Try to parse as JSON
+        if (responseText) {
+          try {
+            responseData = JSON.parse(responseText);
+            console.log("Parsed JSON response:", responseData);
+          } catch (parseError) {
+            console.error("JSON parse error:", parseError);
+            responseData = {
+              message: `Invalid JSON response: ${responseText}`,
+            };
+          }
+        } else {
+          responseData = { message: "Empty response from server" };
         }
+      } catch (readError) {
+        console.error("Error reading response:", readError);
+        responseData = { message: "Unable to read server response" };
       }
 
       if (response.ok) {
