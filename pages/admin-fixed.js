@@ -34,44 +34,38 @@ export default function AdminFixed() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
-    fetchProducts();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    await Promise.all([fetchCategories(), fetchProducts()]);
+  };
 
   const fetchCategories = async () => {
     try {
-      setIsLoading(true);
-      setErrors({});
-
+      console.log("Fetching categories...");
       const response = await fetch("/api/categories");
+
       if (response.ok) {
         const data = await response.json();
-        console.log("Categories fetched:", data);
-        setCategories(data.categories || []);
+        console.log("Categories API response:", data);
 
-        if (!data.categories || data.categories.length === 0) {
-          setErrors((prev) => ({
-            ...prev,
-            categories: "No categories found. Please add categories first.",
-          }));
+        if (data.categories && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+          console.log("Categories set:", data.categories);
+        } else {
+          console.log("No categories in response");
+          setCategories([]);
         }
       } else {
-        const errorData = await response.json();
-        setErrors((prev) => ({
-          ...prev,
-          categories: errorData.message || "Failed to load categories",
-        }));
+        console.error("Categories API failed:", response.status);
         toast.error("Failed to load categories");
+        setCategories([]);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
-      setErrors((prev) => ({
-        ...prev,
-        categories: "Network error loading categories",
-      }));
       toast.error("Error loading categories");
-    } finally {
-      setIsLoading(false);
+      setCategories([]);
     }
   };
 
@@ -107,7 +101,7 @@ export default function AdminFixed() {
 
       if (response.ok) {
         toast.success("Categories created successfully!");
-        fetchCategories();
+        await fetchCategories();
       } else {
         const error = await response.json();
         toast.error(error.message || "Failed to seed categories");
@@ -172,48 +166,41 @@ export default function AdminFixed() {
     }
   };
 
-  const validateProductForm = () => {
-    const errors = {};
-
-    if (!productForm.name.trim()) {
-      errors.name = "Product name is required";
-    }
-
-    if (!productForm.price || parseFloat(productForm.price) <= 0) {
-      errors.price = "Valid price is required";
-    }
-
-    if (!productForm.category) {
-      errors.category = "Category is required";
-    }
-
-    if (!productForm.description.trim()) {
-      errors.description = "Description is required";
-    }
-
-    if (!selectedFile && !productForm.image.trim()) {
-      errors.image = "Product image is required";
-    }
-
-    return errors;
-  };
-
   const handleAddProduct = async (e) => {
     e.preventDefault();
 
-    const validationErrors = validateProductForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      toast.error("Please fix the errors in the form");
+    // Basic validation
+    if (!productForm.name.trim()) {
+      toast.error("Product name is required");
       return;
     }
 
-    setErrors({});
+    if (!productForm.price || parseFloat(productForm.price) <= 0) {
+      toast.error("Valid price is required");
+      return;
+    }
+
+    if (!productForm.category) {
+      toast.error("Please select a category");
+      return;
+    }
+
+    if (!productForm.description.trim()) {
+      toast.error("Product description is required");
+      return;
+    }
+
+    if (!selectedFile && !productForm.image.trim()) {
+      toast.error("Product image is required");
+      return;
+    }
+
     setIsUploading(true);
 
     try {
       let finalImageUrl = productForm.image;
 
+      // Upload file if selected
       if (selectedFile) {
         finalImageUrl = await uploadImage();
         if (!finalImageUrl) {
@@ -222,19 +209,31 @@ export default function AdminFixed() {
         }
       }
 
+      // Prepare product data
+      const productData = {
+        name: productForm.name.trim(),
+        description: productForm.description.trim(),
+        price: parseFloat(productForm.price),
+        category: productForm.category,
+        image: finalImageUrl,
+        inventory: parseInt(productForm.inventory) || 0,
+        featured: productForm.featured,
+      };
+
+      console.log("Sending product data:", productData);
+
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...productForm,
-          image: finalImageUrl,
-          price: parseFloat(productForm.price) || 0,
-          inventory: parseInt(productForm.inventory) || 0,
-        }),
+        body: JSON.stringify(productData),
       });
+
+      const responseData = await response.json();
+      console.log("Product API response:", responseData);
 
       if (response.ok) {
         toast.success("Product added successfully!");
+        // Reset form
         setProductForm({
           name: "",
           description: "",
@@ -246,10 +245,10 @@ export default function AdminFixed() {
         });
         setSelectedFile(null);
         setImagePreview("");
-        fetchProducts();
+        // Refresh products
+        await fetchProducts();
       } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to add product");
+        toast.error(responseData.message || "Failed to add product");
       }
     } catch (error) {
       console.error("Error adding product:", error);
@@ -271,13 +270,16 @@ export default function AdminFixed() {
       const response = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(categoryForm),
+        body: JSON.stringify({
+          name: categoryForm.name.trim(),
+          description: categoryForm.description.trim(),
+        }),
       });
 
       if (response.ok) {
         toast.success("Category added successfully!");
         setCategoryForm({ name: "", description: "" });
-        fetchCategories();
+        await fetchCategories();
       } else {
         const error = await response.json();
         toast.error(error.message || "Failed to add category");
@@ -340,48 +342,51 @@ export default function AdminFixed() {
         {/* Products Tab */}
         {activeTab === "products" && (
           <div className="space-y-6">
-            {/* Categories Status Alert */}
-            {categories.length === 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-                  <div>
-                    <h3 className="text-yellow-800 font-medium">
-                      No Categories Found
-                    </h3>
-                    <p className="text-yellow-700 text-sm mt-1">
-                      You need categories before adding products.
-                    </p>
+            {/* Categories Status */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-blue-800 font-medium">
+                    Categories Status: {categories.length} categories available
+                  </h3>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {categories.map((cat) => (
+                      <span
+                        key={cat._id}
+                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                      >
+                        {cat.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={fetchCategories} variant="outline" size="sm">
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Refresh
+                  </Button>
+                  {categories.length === 0 && (
                     <Button
                       onClick={seedCategories}
-                      className="mt-2 bg-yellow-600 hover:bg-yellow-700"
+                      className="bg-blue-600 hover:bg-blue-700"
                       size="sm"
                       disabled={isLoading}
                     >
-                      {isLoading ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        "Create Default Categories"
-                      )}
+                      {isLoading ? "Creating..." : "Seed Categories"}
                     </Button>
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Add Product Form */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-medium mb-4 text-brand-primary">
                 🛍️ Add New Product
               </h3>
-              <form
-                onSubmit={handleAddProduct}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                <div>
+              <form onSubmit={handleAddProduct} className="space-y-4">
+                {/* Name and Price */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
                     placeholder="Product Name (required) *"
@@ -389,17 +394,9 @@ export default function AdminFixed() {
                     onChange={(e) =>
                       setProductForm({ ...productForm, name: e.target.value })
                     }
-                    className={`p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full ${
-                      errors.name ? "border-red-500" : ""
-                    }`}
+                    className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
                     required
                   />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-                  )}
-                </div>
-
-                <div>
                   <input
                     type="number"
                     step="0.01"
@@ -408,66 +405,73 @@ export default function AdminFixed() {
                     onChange={(e) =>
                       setProductForm({ ...productForm, price: e.target.value })
                     }
-                    className={`p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full ${
-                      errors.price ? "border-red-500" : ""
-                    }`}
+                    className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
                     required
                   />
-                  {errors.price && (
-                    <p className="text-red-500 text-sm mt-1">{errors.price}</p>
-                  )}
                 </div>
 
-                {/* Category Dropdown */}
-                <div>
-                  <select
-                    value={productForm.category}
-                    onChange={(e) =>
-                      setProductForm({
-                        ...productForm,
-                        category: e.target.value,
-                      })
-                    }
-                    className={`p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full ${
-                      errors.category ? "border-red-500" : ""
-                    }`}
-                    required
-                  >
-                    <option value="">Select Category *</option>
-                    {categories && categories.length > 0 ? (
-                      categories.map((cat) => (
+                {/* Category and Inventory */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={productForm.category}
+                      onChange={(e) => {
+                        console.log("Category selected:", e.target.value);
+                        setProductForm({
+                          ...productForm,
+                          category: e.target.value,
+                        });
+                      }}
+                      className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full"
+                      required
+                    >
+                      <option value="">-- Select Category --</option>
+                      {categories.map((cat) => (
                         <option key={cat._id} value={cat._id}>
                           {cat.name}
                         </option>
-                      ))
-                    ) : (
-                      <option disabled>No categories available</option>
-                    )}
-                  </select>
-                  {errors.category && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.category}
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Available: {categories.length} categories
                     </p>
-                  )}
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="Stock/Inventory (optional)"
+                    value={productForm.inventory}
+                    onChange={(e) =>
+                      setProductForm({
+                        ...productForm,
+                        inventory: e.target.value,
+                      })
+                    }
+                    className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
+                  />
                 </div>
 
-                <input
-                  type="number"
-                  placeholder="Stock/Inventory (optional)"
-                  value={productForm.inventory}
+                {/* Description */}
+                <textarea
+                  placeholder="Product Description (required) *"
+                  value={productForm.description}
                   onChange={(e) =>
                     setProductForm({
                       ...productForm,
-                      inventory: e.target.value,
+                      description: e.target.value,
                     })
                   }
-                  className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
+                  className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
+                  rows="3"
+                  required
                 />
 
-                {/* Image Upload Section */}
-                <div className="md:col-span-2 space-y-4">
+                {/* Image Upload */}
+                <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700">
-                    📸 Upload Product Image
+                    📸 Product Image *
                   </label>
 
                   <div className="flex items-center space-x-4">
@@ -475,9 +479,7 @@ export default function AdminFixed() {
                       type="file"
                       accept="image/*"
                       onChange={handleFileSelect}
-                      className={`flex-1 p-3 border rounded-md ${
-                        errors.image ? "border-red-500" : ""
-                      }`}
+                      className="flex-1 p-3 border rounded-md"
                     />
                     {selectedFile && (
                       <span className="text-sm text-green-600">
@@ -512,36 +514,10 @@ export default function AdminFixed() {
                     }
                     className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
                   />
-
-                  {errors.image && (
-                    <p className="text-red-500 text-sm">{errors.image}</p>
-                  )}
                 </div>
 
-                <div className="md:col-span-2">
-                  <textarea
-                    placeholder="Product Description (required) *"
-                    value={productForm.description}
-                    onChange={(e) =>
-                      setProductForm({
-                        ...productForm,
-                        description: e.target.value,
-                      })
-                    }
-                    className={`p-3 border rounded-md w-full focus:ring-2 focus:ring-brand-primary ${
-                      errors.description ? "border-red-500" : ""
-                    }`}
-                    rows="3"
-                    required
-                  />
-                  {errors.description && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.description}
-                    </p>
-                  )}
-                </div>
-
-                <label className="flex items-center md:col-span-2">
+                {/* Featured checkbox */}
+                <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={productForm.featured}
@@ -556,15 +532,16 @@ export default function AdminFixed() {
                   Featured Product (show on homepage?)
                 </label>
 
+                {/* Submit Button */}
                 <Button
                   type="submit"
-                  className="md:col-span-2 bg-brand-primary hover:bg-brand-primary/90 text-lg py-3"
+                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-lg py-3"
                   disabled={isUploading || categories.length === 0}
                 >
                   {isUploading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {selectedFile ? "Uploading..." : "Adding..."}
+                      {selectedFile ? "Uploading..." : "Adding Product..."}
                     </>
                   ) : (
                     <>
@@ -574,46 +551,6 @@ export default function AdminFixed() {
                   )}
                 </Button>
               </form>
-
-              {/* Categories Debug Info */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-700">
-                    Available Categories ({categories.length}):
-                  </h4>
-                  <Button
-                    onClick={fetchCategories}
-                    variant="outline"
-                    size="sm"
-                    disabled={isLoading}
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`}
-                    />
-                    Refresh
-                  </Button>
-                </div>
-                {isLoading ? (
-                  <p className="text-blue-600">Loading categories...</p>
-                ) : categories.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((cat) => (
-                      <span
-                        key={cat._id}
-                        className="px-3 py-1 bg-brand-primary text-white rounded-full text-sm"
-                      >
-                        {cat.name}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-red-600">
-                    ⚠️{" "}
-                    {errors.categories ||
-                      "No categories found. Please add categories first!"}
-                  </p>
-                )}
-              </div>
             </div>
 
             {/* Products List */}
@@ -730,9 +667,7 @@ export default function AdminFixed() {
                 </Button>
               </div>
               <div className="p-6">
-                {isLoading ? (
-                  <p className="text-center text-blue-600">Loading...</p>
-                ) : categories.length > 0 ? (
+                {categories.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categories.map((category) => (
                       <div key={category._id} className="border rounded-lg p-4">
