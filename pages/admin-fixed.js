@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import { Button } from "../components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 export default function AdminFixed() {
@@ -11,6 +11,7 @@ export default function AdminFixed() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // Form states
   const [productForm, setProductForm] = useState({
@@ -40,17 +41,34 @@ export default function AdminFixed() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
+      setErrors({});
+
       const response = await fetch("/api/categories");
       if (response.ok) {
         const data = await response.json();
         console.log("Categories fetched:", data);
         setCategories(data.categories || []);
+
+        if (!data.categories || data.categories.length === 0) {
+          setErrors((prev) => ({
+            ...prev,
+            categories: "No categories found. Please add categories first.",
+          }));
+        }
       } else {
-        console.error("Failed to fetch categories:", response.status);
+        const errorData = await response.json();
+        setErrors((prev) => ({
+          ...prev,
+          categories: errorData.message || "Failed to load categories",
+        }));
         toast.error("Failed to load categories");
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
+      setErrors((prev) => ({
+        ...prev,
+        categories: "Network error loading categories",
+      }));
       toast.error("Error loading categories");
     } finally {
       setIsLoading(false);
@@ -65,18 +83,58 @@ export default function AdminFixed() {
         setProducts(data.products || []);
       } else {
         // Fallback to JSON products
-        const jsonResponse = await fetch("/data/products.json");
-        const jsonData = await jsonResponse.json();
-        setProducts(jsonData || []);
+        try {
+          const jsonResponse = await fetch("/data/products.json");
+          const jsonData = await jsonResponse.json();
+          setProducts(jsonData || []);
+        } catch (fallbackError) {
+          console.error("Error loading fallback products:", fallbackError);
+          setProducts([]);
+        }
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+      setProducts([]);
+    }
+  };
+
+  const seedCategories = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/seed-categories", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        toast.success("Categories created successfully!");
+        fetchCategories();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to seed categories");
+      }
+    } catch (error) {
+      console.error("Error seeding categories:", error);
+      toast.error("Failed to seed categories");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result);
@@ -114,13 +172,43 @@ export default function AdminFixed() {
     }
   };
 
+  const validateProductForm = () => {
+    const errors = {};
+
+    if (!productForm.name.trim()) {
+      errors.name = "Product name is required";
+    }
+
+    if (!productForm.price || parseFloat(productForm.price) <= 0) {
+      errors.price = "Valid price is required";
+    }
+
+    if (!productForm.category) {
+      errors.category = "Category is required";
+    }
+
+    if (!productForm.description.trim()) {
+      errors.description = "Description is required";
+    }
+
+    if (!selectedFile && !productForm.image.trim()) {
+      errors.image = "Product image is required";
+    }
+
+    return errors;
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
-    if (!productForm.name || !productForm.price || !productForm.category) {
-      toast.error("Name, Price and Category are required!");
+
+    const validationErrors = validateProductForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error("Please fix the errors in the form");
       return;
     }
 
+    setErrors({});
     setIsUploading(true);
 
     try {
@@ -173,12 +261,13 @@ export default function AdminFixed() {
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    if (!categoryForm.name) {
+    if (!categoryForm.name.trim()) {
       toast.error("Category name is required!");
       return;
     }
 
     try {
+      setIsLoading(true);
       const response = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -196,6 +285,8 @@ export default function AdminFixed() {
     } catch (error) {
       console.error("Error adding category:", error);
       toast.error("Failed to add category");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -249,6 +340,38 @@ export default function AdminFixed() {
         {/* Products Tab */}
         {activeTab === "products" && (
           <div className="space-y-6">
+            {/* Categories Status Alert */}
+            {categories.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                  <div>
+                    <h3 className="text-yellow-800 font-medium">
+                      No Categories Found
+                    </h3>
+                    <p className="text-yellow-700 text-sm mt-1">
+                      You need categories before adding products.
+                    </p>
+                    <Button
+                      onClick={seedCategories}
+                      className="mt-2 bg-yellow-600 hover:bg-yellow-700"
+                      size="sm"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create Default Categories"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Add Product Form */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-medium mb-4 text-brand-primary">
@@ -258,47 +381,75 @@ export default function AdminFixed() {
                 onSubmit={handleAddProduct}
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                <input
-                  type="text"
-                  placeholder="Product Name (required) *"
-                  value={productForm.name}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, name: e.target.value })
-                  }
-                  className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
-                  required
-                />
-                <input
-                  type="number"
-                  placeholder="Price in PKR (required) *"
-                  value={productForm.price}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, price: e.target.value })
-                  }
-                  className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
-                  required
-                />
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Product Name (required) *"
+                    value={productForm.name}
+                    onChange={(e) =>
+                      setProductForm({ ...productForm, name: e.target.value })
+                    }
+                    className={`p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full ${
+                      errors.name ? "border-red-500" : ""
+                    }`}
+                    required
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Price in PKR (required) *"
+                    value={productForm.price}
+                    onChange={(e) =>
+                      setProductForm({ ...productForm, price: e.target.value })
+                    }
+                    className={`p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full ${
+                      errors.price ? "border-red-500" : ""
+                    }`}
+                    required
+                  />
+                  {errors.price && (
+                    <p className="text-red-500 text-sm mt-1">{errors.price}</p>
+                  )}
+                </div>
 
                 {/* Category Dropdown */}
-                <select
-                  value={productForm.category}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, category: e.target.value })
-                  }
-                  className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
-                  required
-                >
-                  <option value="">Select Category *</option>
-                  {categories && categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <option key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No categories available</option>
+                <div>
+                  <select
+                    value={productForm.category}
+                    onChange={(e) =>
+                      setProductForm({
+                        ...productForm,
+                        category: e.target.value,
+                      })
+                    }
+                    className={`p-3 border rounded-md focus:ring-2 focus:ring-brand-primary w-full ${
+                      errors.category ? "border-red-500" : ""
+                    }`}
+                    required
+                  >
+                    <option value="">Select Category *</option>
+                    {categories && categories.length > 0 ? (
+                      categories.map((cat) => (
+                        <option key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No categories available</option>
+                    )}
+                  </select>
+                  {errors.category && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.category}
+                    </p>
                   )}
-                </select>
+                </div>
 
                 <input
                   type="number"
@@ -324,7 +475,9 @@ export default function AdminFixed() {
                       type="file"
                       accept="image/*"
                       onChange={handleFileSelect}
-                      className="flex-1 p-3 border rounded-md"
+                      className={`flex-1 p-3 border rounded-md ${
+                        errors.image ? "border-red-500" : ""
+                      }`}
                     />
                     {selectedFile && (
                       <span className="text-sm text-green-600">
@@ -359,20 +512,34 @@ export default function AdminFixed() {
                     }
                     className="w-full p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
                   />
+
+                  {errors.image && (
+                    <p className="text-red-500 text-sm">{errors.image}</p>
+                  )}
                 </div>
 
-                <textarea
-                  placeholder="Product Description (optional)"
-                  value={productForm.description}
-                  onChange={(e) =>
-                    setProductForm({
-                      ...productForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className="p-3 border rounded-md md:col-span-2 focus:ring-2 focus:ring-brand-primary"
-                  rows="3"
-                />
+                <div className="md:col-span-2">
+                  <textarea
+                    placeholder="Product Description (required) *"
+                    value={productForm.description}
+                    onChange={(e) =>
+                      setProductForm({
+                        ...productForm,
+                        description: e.target.value,
+                      })
+                    }
+                    className={`p-3 border rounded-md w-full focus:ring-2 focus:ring-brand-primary ${
+                      errors.description ? "border-red-500" : ""
+                    }`}
+                    rows="3"
+                    required
+                  />
+                  {errors.description && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.description}
+                    </p>
+                  )}
+                </div>
 
                 <label className="flex items-center md:col-span-2">
                   <input
@@ -392,12 +559,12 @@ export default function AdminFixed() {
                 <Button
                   type="submit"
                   className="md:col-span-2 bg-brand-primary hover:bg-brand-primary/90 text-lg py-3"
-                  disabled={isUploading}
+                  disabled={isUploading || categories.length === 0}
                 >
                   {isUploading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Uploading...
+                      {selectedFile ? "Uploading..." : "Adding..."}
                     </>
                   ) : (
                     <>
@@ -410,9 +577,22 @@ export default function AdminFixed() {
 
               {/* Categories Debug Info */}
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-700 mb-2">
-                  Available Categories ({categories.length}):
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-700">
+                    Available Categories ({categories.length}):
+                  </h4>
+                  <Button
+                    onClick={fetchCategories}
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading}
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`}
+                    />
+                    Refresh
+                  </Button>
+                </div>
                 {isLoading ? (
                   <p className="text-blue-600">Loading categories...</p>
                 ) : categories.length > 0 ? (
@@ -428,7 +608,9 @@ export default function AdminFixed() {
                   </div>
                 ) : (
                   <p className="text-red-600">
-                    ⚠️ No categories found. Please add categories first!
+                    ⚠️{" "}
+                    {errors.categories ||
+                      "No categories found. Please add categories first!"}
                   </p>
                 )}
               </div>
@@ -453,13 +635,17 @@ export default function AdminFixed() {
                           src={product.image || "/placeholder.svg"}
                           alt={product.name}
                           className="w-full h-32 object-cover rounded mb-2"
+                          onError={(e) => {
+                            e.target.src = "/placeholder.svg";
+                          }}
                         />
                         <h4 className="font-medium">{product.name}</h4>
                         <p className="text-sm text-gray-600">
                           {formatPrice(product.price)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Category: {product.category?.name || "N/A"}
+                          Category:{" "}
+                          {product.category?.name || product.category || "N/A"}
                         </p>
                       </div>
                     ))}
@@ -505,18 +691,43 @@ export default function AdminFixed() {
                 <Button
                   type="submit"
                   className="bg-brand-primary hover:bg-brand-primary/90 text-lg py-3"
+                  disabled={isLoading}
                 >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Add Category
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5 mr-2" />
+                      Add Category
+                    </>
+                  )}
                 </Button>
               </form>
             </div>
 
             <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b">
+              <div className="px-6 py-4 border-b flex items-center justify-between">
                 <h3 className="text-lg font-medium">
                   Current Categories ({categories.length})
                 </h3>
+                <Button
+                  onClick={seedCategories}
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Seed Default Categories"
+                  )}
+                </Button>
               </div>
               <div className="p-6">
                 {isLoading ? (
@@ -536,9 +747,12 @@ export default function AdminFixed() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-gray-500">
-                    No categories found
-                  </p>
+                  <div className="text-center text-gray-500">
+                    <p>No categories found</p>
+                    <p className="text-sm mt-2">
+                      Click "Seed Default Categories" to get started
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
