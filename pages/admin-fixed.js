@@ -484,7 +484,11 @@ export default function AdminFixed() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={fetchCategories} variant="outline" size="sm">
+                  <Button
+                    onClick={() => fetchCategories(true)}
+                    variant="outline"
+                    size="sm"
+                  >
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Refresh
                   </Button>
