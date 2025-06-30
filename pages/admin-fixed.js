@@ -35,12 +35,51 @@ export default function AdminFixed() {
 
   const [hasLoaded, setHasLoaded] = useState(false);
 
+  // Fallback categories for development
+  const fallbackCategories = [
+    {
+      _id: "temp_1",
+      name: "Lawn",
+      slug: "lawn",
+      description: "Beautiful lawn fabric collections",
+    },
+    {
+      _id: "temp_2",
+      name: "Embroidered",
+      slug: "embroidered",
+      description: "Intricate embroidered designs",
+    },
+    {
+      _id: "temp_3",
+      name: "Cotton",
+      slug: "cotton",
+      description: "Pure cotton fabric collections",
+    },
+    {
+      _id: "temp_4",
+      name: "Chiffon",
+      slug: "chiffon",
+      description: "Elegant chiffon collections",
+    },
+    {
+      _id: "temp_5",
+      name: "Silk",
+      slug: "silk",
+      description: "Premium silk fabric collections",
+    },
+  ];
+
   useEffect(() => {
+    // Provide fallback categories immediately to prevent UI blocking
+    if (categories.length === 0) {
+      setCategories(fallbackCategories);
+    }
+
     // Only load data when component is properly mounted and hasn't loaded yet
     if (!hasLoaded) {
       const timer = setTimeout(() => {
         loadData();
-      }, 500); // Increased delay for stability
+      }, 1000); // Increased delay for stability
 
       return () => clearTimeout(timer);
     }
