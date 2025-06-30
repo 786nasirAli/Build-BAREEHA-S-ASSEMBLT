@@ -52,8 +52,16 @@ export default function AdminFixed() {
 
     try {
       setHasLoaded(true);
-      // Load categories first, then products
+      // Load categories first
       await fetchCategories();
+
+      // If no categories exist, auto-seed them
+      if (categories.length === 0) {
+        console.log("No categories found, auto-seeding...");
+        await seedCategories();
+      }
+
+      // Then load products
       await fetchProducts();
     } catch (error) {
       console.error("Error in loadData:", error);
