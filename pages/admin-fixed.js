@@ -200,10 +200,16 @@ export default function AdminFixed() {
     formData.append("image", selectedFile);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for uploads
+
       const response = await fetch("/api/upload-image", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -214,8 +220,12 @@ export default function AdminFixed() {
         return null;
       }
     } catch (error) {
-      console.error("Error uploading image:", error);
-      toast.error("Error uploading image");
+      if (error.name === "AbortError") {
+        toast.error("Upload timed out");
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image");
+      }
       return null;
     } finally {
       setIsUploading(false);
