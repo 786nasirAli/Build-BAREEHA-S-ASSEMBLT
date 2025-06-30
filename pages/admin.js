@@ -93,31 +93,17 @@ export default function AdminDashboard() {
   const fetchCategories = async () => {
     try {
       const response = await fetch("/api/categories");
-      const data = await response.json();
-      setCategories(data.categories || []);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Categories fetched:", data.categories);
+        setCategories(data.categories || []);
+      } else {
+        console.error("Failed to fetch categories");
+        setCategories([]);
+      }
     } catch (error) {
       console.error("Error fetching categories:", error);
-      // Set default categories if API fails
-      setCategories([
-        {
-          _id: "1",
-          name: "Lawn",
-          slug: "lawn",
-          description: "Lawn Collection",
-        },
-        {
-          _id: "2",
-          name: "Embroidered",
-          slug: "embroidered",
-          description: "Embroidered Collection",
-        },
-        {
-          _id: "3",
-          name: "Cotton",
-          slug: "cotton",
-          description: "Cotton Collection",
-        },
-      ]);
+      setCategories([]);
     }
   };
 
