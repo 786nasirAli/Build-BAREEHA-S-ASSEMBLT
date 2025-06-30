@@ -342,6 +342,10 @@ export default function AdminFixed() {
 
     try {
       setIsLoading(true);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -349,7 +353,10 @@ export default function AdminFixed() {
           name: categoryForm.name.trim(),
           description: categoryForm.description.trim(),
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         toast.success("Category added successfully!");
@@ -360,8 +367,12 @@ export default function AdminFixed() {
         toast.error(error.message || "Failed to add category");
       }
     } catch (error) {
-      console.error("Error adding category:", error);
-      toast.error("Failed to add category");
+      if (error.name === "AbortError") {
+        toast.error("Request timed out");
+      } else {
+        console.error("Error adding category:", error);
+        toast.error("Failed to add category");
+      }
     } finally {
       setIsLoading(false);
     }
