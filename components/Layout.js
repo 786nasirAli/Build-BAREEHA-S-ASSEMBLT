@@ -48,36 +48,49 @@ export default function Layout({ children }) {
               <div className="ml-2 text-sm text-brand-secondary">ASSEMBLE</div>
             </Link>
 
-            {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex space-x-6">
               <Link href="/" className="text-gray-700 hover:text-brand-primary">
-                Home
+                🏠 Home
               </Link>
-              <Link
-                href="/category/lawn"
-                className="text-gray-700 hover:text-brand-primary"
-              >
-                Lawn
-              </Link>
-              <Link
-                href="/category/embroidered"
-                className="text-gray-700 hover:text-brand-primary"
-              >
-                Embroidered
-              </Link>
-              <Link
-                href="/category/cotton"
-                className="text-gray-700 hover:text-brand-primary"
-              >
-                Cotton
-              </Link>
+
+              {/* Dynamic Categories */}
+              {categories.slice(0, 4).map((category) => (
+                <Link
+                  key={category._id}
+                  href={`/category/${category.slug}`}
+                  className="text-gray-700 hover:text-brand-primary"
+                >
+                  {category.name}
+                </Link>
+              ))}
+
+              {categories.length > 4 && (
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="text-gray-700 hover:text-brand-primary"
+                >
+                  More...
+                </button>
+              )}
+
+              {/* Admin Dashboard with Icon */}
               <Link
                 href="/admin-fixed"
-                className="text-brand-primary hover:text-brand-primary/80 font-medium"
+                className="text-brand-primary hover:text-brand-primary/80 font-medium flex items-center"
               >
-                Admin Dashboard
+                <Settings className="h-4 w-4 mr-1" />
+                Admin
               </Link>
             </nav>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 rounded-md text-gray-700 hover:text-brand-primary"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
 
             {/* User Actions */}
             <div className="flex items-center space-x-4">
