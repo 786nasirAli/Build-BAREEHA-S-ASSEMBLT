@@ -635,9 +635,19 @@ export default function AdminDashboard() {
                 <Button
                   type="submit"
                   className="md:col-span-2 bg-brand-primary hover:bg-brand-primary/90"
+                  disabled={isUploading}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Product
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </>
+                  )}
                 </Button>
               </form>
             </div>
