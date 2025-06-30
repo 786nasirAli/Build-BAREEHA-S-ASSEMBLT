@@ -67,6 +67,9 @@ export default function AdminDashboard() {
     try {
       await Promise.all([fetchProducts(), fetchCategories(), fetchOrders()]);
       calculateStats();
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load dashboard data");
     } finally {
       setIsLoading(false);
     }
