@@ -39,14 +39,21 @@ export default function AdminFixed() {
 
   const fetchCategories = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/categories");
       if (response.ok) {
         const data = await response.json();
+        console.log("Categories fetched:", data);
         setCategories(data.categories || []);
-        console.log("Categories loaded:", data.categories);
+      } else {
+        console.error("Failed to fetch categories:", response.status);
+        toast.error("Failed to load categories");
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
+      toast.error("Error loading categories");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -110,7 +117,7 @@ export default function AdminFixed() {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!productForm.name || !productForm.price || !productForm.category) {
-      toast.error("Name, Price aur Category zarori hai!");
+      toast.error("Name, Price and Category are required!");
       return;
     }
 
@@ -139,7 +146,7 @@ export default function AdminFixed() {
       });
 
       if (response.ok) {
-        toast.success("Product successfully add ho gaya!");
+        toast.success("Product added successfully!");
         setProductForm({
           name: "",
           description: "",
@@ -154,11 +161,11 @@ export default function AdminFixed() {
         fetchProducts();
       } else {
         const error = await response.json();
-        toast.error(error.message || "Product add nahi hua");
+        toast.error(error.message || "Failed to add product");
       }
     } catch (error) {
       console.error("Error adding product:", error);
-      toast.error("Product add nahi hua");
+      toast.error("Failed to add product");
     } finally {
       setIsUploading(false);
     }
@@ -167,7 +174,7 @@ export default function AdminFixed() {
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!categoryForm.name) {
-      toast.error("Category name zarori hai!");
+      toast.error("Category name is required!");
       return;
     }
 
@@ -179,16 +186,16 @@ export default function AdminFixed() {
       });
 
       if (response.ok) {
-        toast.success("Category successfully add ho gayi!");
+        toast.success("Category added successfully!");
         setCategoryForm({ name: "", description: "" });
         fetchCategories();
       } else {
         const error = await response.json();
-        toast.error(error.message || "Category add nahi hui");
+        toast.error(error.message || "Failed to add category");
       }
     } catch (error) {
       console.error("Error adding category:", error);
-      toast.error("Category add nahi hui");
+      toast.error("Failed to add category");
     }
   };
 
@@ -209,7 +216,7 @@ export default function AdminFixed() {
             Admin Dashboard - Bareehas Assemble
           </h1>
           <p className="text-gray-600">
-            Aap ka store manage kariye - Products aur Categories add kariye
+            Manage your store - Add products and categories
           </p>
         </div>
 
@@ -224,7 +231,7 @@ export default function AdminFixed() {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              📦 Products Add/Manage
+              📦 Products
             </button>
             <button
               onClick={() => setActiveTab("categories")}
@@ -234,7 +241,7 @@ export default function AdminFixed() {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              📁 Categories Add/Manage
+              📁 Categories
             </button>
           </nav>
         </div>
@@ -245,7 +252,7 @@ export default function AdminFixed() {
             {/* Add Product Form */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-medium mb-4 text-brand-primary">
-                🛍️ Naya Product Add Kariye
+                🛍️ Add New Product
               </h3>
               <form
                 onSubmit={handleAddProduct}
@@ -253,7 +260,7 @@ export default function AdminFixed() {
               >
                 <input
                   type="text"
-                  placeholder="Product Name (zarori) *"
+                  placeholder="Product Name (required) *"
                   value={productForm.name}
                   onChange={(e) =>
                     setProductForm({ ...productForm, name: e.target.value })
@@ -263,7 +270,7 @@ export default function AdminFixed() {
                 />
                 <input
                   type="number"
-                  placeholder="Price PKR mein (zarori) *"
+                  placeholder="Price in PKR (required) *"
                   value={productForm.price}
                   onChange={(e) =>
                     setProductForm({ ...productForm, price: e.target.value })
@@ -281,12 +288,16 @@ export default function AdminFixed() {
                   className="p-3 border rounded-md focus:ring-2 focus:ring-brand-primary"
                   required
                 >
-                  <option value="">Category Select Kariye *</option>
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
+                  <option value="">Select Category *</option>
+                  {categories && categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No categories available</option>
+                  )}
                 </select>
 
                 <input
@@ -305,7 +316,7 @@ export default function AdminFixed() {
                 {/* Image Upload Section */}
                 <div className="md:col-span-2 space-y-4">
                   <label className="block text-sm font-medium text-gray-700">
-                    📸 Product Ki Image Upload Kariye
+                    📸 Upload Product Image
                   </label>
 
                   <div className="flex items-center space-x-4">
@@ -335,13 +346,13 @@ export default function AdminFixed() {
 
                   <div className="flex items-center">
                     <div className="flex-1 border-t border-gray-300"></div>
-                    <span className="px-3 text-gray-500 text-sm">YA</span>
+                    <span className="px-3 text-gray-500 text-sm">OR</span>
                     <div className="flex-1 border-t border-gray-300"></div>
                   </div>
 
                   <input
                     type="url"
-                    placeholder="Ya phir image URL paste kariye"
+                    placeholder="Or paste image URL"
                     value={productForm.image}
                     onChange={(e) =>
                       setProductForm({ ...productForm, image: e.target.value })
@@ -375,7 +386,7 @@ export default function AdminFixed() {
                     }
                     className="mr-2"
                   />
-                  Featured Product (homepage pe dikhana hai?)
+                  Featured Product (show on homepage?)
                 </label>
 
                 <Button
@@ -386,12 +397,12 @@ export default function AdminFixed() {
                   {isUploading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Upload ho raha hai...
+                      Uploading...
                     </>
                   ) : (
                     <>
                       <Plus className="h-5 w-5 mr-2" />
-                      Product Add Kariye
+                      Add Product
                     </>
                   )}
                 </Button>
@@ -402,7 +413,9 @@ export default function AdminFixed() {
                 <h4 className="font-medium text-gray-700 mb-2">
                   Available Categories ({categories.length}):
                 </h4>
-                {categories.length > 0 ? (
+                {isLoading ? (
+                  <p className="text-blue-600">Loading categories...</p>
+                ) : categories.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {categories.map((cat) => (
                       <span
@@ -415,7 +428,7 @@ export default function AdminFixed() {
                   </div>
                 ) : (
                   <p className="text-red-600">
-                    ⚠️ Abhi koi category nahi hai. Pehle category add kariye!
+                    ⚠️ No categories found. Please add categories first!
                   </p>
                 )}
               </div>
@@ -445,13 +458,14 @@ export default function AdminFixed() {
                         <p className="text-sm text-gray-600">
                           {formatPrice(product.price)}
                         </p>
+                        <p className="text-xs text-gray-500">
+                          Category: {product.category?.name || "N/A"}
+                        </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-gray-500">
-                    Abhi koi product nahi hai
-                  </p>
+                  <p className="text-center text-gray-500">No products found</p>
                 )}
               </div>
             </div>
@@ -463,12 +477,12 @@ export default function AdminFixed() {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-medium mb-4 text-brand-primary">
-                📁 Nayi Category Add Kariye
+                📁 Add New Category
               </h3>
               <form onSubmit={handleAddCategory} className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Category Name (zarori) *"
+                  placeholder="Category Name (required) *"
                   value={categoryForm.name}
                   onChange={(e) =>
                     setCategoryForm({ ...categoryForm, name: e.target.value })
@@ -493,7 +507,7 @@ export default function AdminFixed() {
                   className="bg-brand-primary hover:bg-brand-primary/90 text-lg py-3"
                 >
                   <Plus className="h-5 w-5 mr-2" />
-                  Category Add Kariye
+                  Add Category
                 </Button>
               </form>
             </div>
@@ -505,7 +519,9 @@ export default function AdminFixed() {
                 </h3>
               </div>
               <div className="p-6">
-                {categories.length > 0 ? (
+                {isLoading ? (
+                  <p className="text-center text-blue-600">Loading...</p>
+                ) : categories.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categories.map((category) => (
                       <div key={category._id} className="border rounded-lg p-4">
@@ -521,7 +537,7 @@ export default function AdminFixed() {
                   </div>
                 ) : (
                   <p className="text-center text-gray-500">
-                    Abhi koi category nahi hai
+                    No categories found
                   </p>
                 )}
               </div>
