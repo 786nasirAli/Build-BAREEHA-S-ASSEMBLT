@@ -18,20 +18,44 @@ export default function Layout({ children }) {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/categories");
+      // Add a timeout and better error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const response = await fetch("/api/categories", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
         setCategories(data.categories || []);
+        console.log(
+          "Categories loaded successfully:",
+          data.categories?.length || 0,
+        );
+      } else {
+        console.warn("Categories API returned non-OK status:", response.status);
+        setFallbackCategories();
       }
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      // Fallback categories
-      setCategories([
-        { _id: "1", name: "Lawn", slug: "lawn" },
-        { _id: "2", name: "Embroidered", slug: "embroidered" },
-        { _id: "3", name: "Cotton", slug: "cotton" },
-      ]);
+      console.error("Error fetching categories:", error.message);
+      setFallbackCategories();
     }
+  };
+
+  const setFallbackCategories = () => {
+    setCategories([
+      { _id: "1", name: "Lawn", slug: "lawn" },
+      { _id: "2", name: "Embroidered", slug: "embroidered" },
+      { _id: "3", name: "Cotton", slug: "cotton" },
+      { _id: "4", name: "Chiffon", slug: "chiffon" },
+    ]);
   };
 
   return (
