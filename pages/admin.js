@@ -556,15 +556,56 @@ export default function AdminDashboard() {
                   }
                   className="p-3 border rounded-md"
                 />
-                <input
-                  type="url"
-                  placeholder="Image URL"
-                  value={productForm.image}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, image: e.target.value })
-                  }
-                  className="p-3 border rounded-md md:col-span-2"
-                />
+                {/* Image Upload Section */}
+                <div className="md:col-span-2 space-y-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Product Image
+                  </label>
+
+                  {/* File Upload */}
+                  <div className="flex items-center space-x-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="flex-1 p-3 border rounded-md"
+                    />
+                    {selectedFile && (
+                      <span className="text-sm text-green-600">
+                        ✓ {selectedFile.name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-md border"
+                      />
+                    </div>
+                  )}
+
+                  {/* OR Divider */}
+                  <div className="flex items-center">
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="px-3 text-gray-500 text-sm">OR</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
+                  </div>
+
+                  {/* URL Input as Alternative */}
+                  <input
+                    type="url"
+                    placeholder="Or paste image URL here"
+                    value={productForm.image}
+                    onChange={(e) =>
+                      setProductForm({ ...productForm, image: e.target.value })
+                    }
+                    className="w-full p-3 border rounded-md"
+                  />
+                </div>
                 <textarea
                   placeholder="Description"
                   value={productForm.description}
