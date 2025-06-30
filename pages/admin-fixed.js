@@ -34,17 +34,38 @@ export default function AdminFixed() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    loadData();
+    // Add a small delay to prevent hot reload fetch issues
+    const timer = setTimeout(() => {
+      loadData();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const loadData = async () => {
-    await Promise.all([fetchCategories(), fetchProducts()]);
+    try {
+      await Promise.all([fetchCategories(), fetchProducts()]);
+    } catch (error) {
+      console.error("Error in loadData:", error);
+    }
   };
 
   const fetchCategories = async () => {
     try {
       console.log("Fetching categories...");
-      const response = await fetch("/api/categories");
+
+      // Add AbortController to handle cleanup
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch("/api/categories", {
+        signal: controller.signal,
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -59,26 +80,42 @@ export default function AdminFixed() {
         }
       } else {
         console.error("Categories API failed:", response.status);
-        toast.error("Failed to load categories");
         setCategories([]);
       }
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      toast.error("Error loading categories");
+      if (error.name === "AbortError") {
+        console.log("Categories fetch was aborted");
+      } else {
+        console.error("Error fetching categories:", error);
+      }
       setCategories([]);
     }
   };
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch("/api/products?limit=100");
+      // Add AbortController to handle cleanup
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch("/api/products?limit=100", {
+        signal: controller.signal,
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
       } else {
         // Fallback to JSON products
         try {
-          const jsonResponse = await fetch("/data/products.json");
+          const jsonResponse = await fetch("/data/products.json", {
+            signal: controller.signal,
+          });
           const jsonData = await jsonResponse.json();
           setProducts(jsonData || []);
         } catch (fallbackError) {
@@ -87,7 +124,11 @@ export default function AdminFixed() {
         }
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      if (error.name === "AbortError") {
+        console.log("Products fetch was aborted");
+      } else {
+        console.error("Error fetching products:", error);
+      }
       setProducts([]);
     }
   };
