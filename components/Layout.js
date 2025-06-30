@@ -11,9 +11,23 @@ export default function Layout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState([]);
 
-  // Fetch categories dynamically
+  // Fetch categories dynamically with cleanup
   useEffect(() => {
-    fetchCategories();
+    let isMounted = true;
+
+    const loadCategories = async () => {
+      if (isMounted) {
+        await fetchCategories();
+      }
+    };
+
+    // Add delay to avoid React refresh conflicts
+    const timer = setTimeout(loadCategories, 100);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const fetchCategories = async () => {
