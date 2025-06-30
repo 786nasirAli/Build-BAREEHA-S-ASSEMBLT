@@ -141,6 +141,79 @@ export default function Layout({ children }) {
         </div>
       </header>
 
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+
+          <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-lg">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-brand-primary">Menu</h2>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-md text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <Link
+                href="/"
+                className="block py-2 text-gray-700 hover:text-brand-primary"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                🏠 Home
+              </Link>
+
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium text-gray-500 mb-3">
+                  CATEGORIES
+                </h3>
+                {categories.map((category) => (
+                  <Link
+                    key={category._id}
+                    href={`/category/${category.slug}`}
+                    className="block py-2 text-gray-700 hover:text-brand-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    📁 {category.name}
+                  </Link>
+                ))}
+                {categories.length === 0 && (
+                  <p className="text-sm text-gray-500">No categories yet</p>
+                )}
+              </div>
+
+              <div className="border-t pt-4">
+                <Link
+                  href="/admin-fixed"
+                  className="block py-2 text-brand-primary hover:text-brand-primary/80 font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Settings className="h-4 w-4 inline mr-2" />
+                  Admin Dashboard
+                </Link>
+              </div>
+
+              <div className="border-t pt-4">
+                <Link
+                  href="/cart"
+                  className="block py-2 text-gray-700 hover:text-brand-primary"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <ShoppingCart className="h-4 w-4 inline mr-2" />
+                  Cart ({getCartItemCount()})
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main>{children}</main>
 
