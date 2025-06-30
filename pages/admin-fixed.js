@@ -119,8 +119,17 @@ export default function AdminFixed() {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (showToast = false) => {
     try {
+      // Skip fetch if in hot reload state
+      if (
+        typeof window !== "undefined" &&
+        window.location.href.includes("reload=")
+      ) {
+        console.log("Skipping products fetch during hot reload");
+        return;
+      }
+
       // Add AbortController to handle cleanup
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -137,6 +146,7 @@ export default function AdminFixed() {
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
+        if (showToast) toast.success("Products refreshed!");
       } else {
         // Fallback to JSON products
         try {
