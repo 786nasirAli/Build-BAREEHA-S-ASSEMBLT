@@ -288,6 +288,14 @@ export default function AdminFixed() {
       return;
     }
 
+    // Check if category ID is valid (not a temp ID)
+    if (productForm.category.startsWith("temp_")) {
+      toast.error(
+        "Please refresh and select a real category from the database",
+      );
+      return;
+    }
+
     if (!productForm.description.trim()) {
       toast.error("Product description is required");
       return;
